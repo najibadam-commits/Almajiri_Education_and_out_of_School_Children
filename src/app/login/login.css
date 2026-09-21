@@ -1,0 +1,350 @@
+/*
+ * CHIGARI login page.
+ *
+ * Carried over from the prototype's index.html. Every rule is scoped under
+ * .login-page so that the login screen and the dashboard can share one <body>
+ * without either one's styles reaching the other. The colour values are the
+ * prototype's own and are intentionally fixed rather than themed: the login
+ * screen is light in both themes, exactly as it is today.
+ */
+
+.login-page {
+  --login-green: #12805a;
+  --login-green-dark: #0d6b4a;
+  --login-text: #12333a;
+  --login-muted: #607278;
+  --login-line: #d9e1e3;
+
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4vh 5.5vw;
+  overflow: hidden;
+  background: #063c34;
+  color: var(--login-text);
+  font-family:
+    var(--font-inter),
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+.login-page .background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+}
+
+/* Slightly strengthens the photograph behind the interactive card. */
+.login-page .shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0, 35, 32, 0.08), rgba(0, 25, 23, 0.08));
+  z-index: 1;
+  pointer-events: none;
+}
+
+.login-card {
+  position: relative;
+  z-index: 3;
+  width: min(470px, 92vw);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.985);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.28);
+  padding: 34px 36px 36px;
+}
+
+.login-card .card-logo {
+  display: block;
+  width: 245px;
+  height: auto;
+  margin: 0 auto 24px;
+}
+
+.login-card h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  color: var(--login-text);
+}
+
+.login-card .intro {
+  margin: 8px 0 25px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--login-muted);
+}
+
+.login-card .field {
+  margin-bottom: 17px;
+}
+
+.login-card label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 650;
+  color: #17343b;
+}
+
+.login-card .input-wrap {
+  position: relative;
+}
+
+.login-card .input-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 19px;
+  height: 19px;
+  color: #819199;
+  pointer-events: none;
+}
+
+.login-card input {
+  width: 100%;
+  height: 50px;
+  border: 1px solid var(--login-line);
+  border-radius: 10px;
+  outline: none;
+  padding: 0 16px 0 45px;
+  background: #fff;
+  color: #17343b;
+  font: inherit;
+  font-size: 14px;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.login-card input:focus {
+  border-color: var(--login-green);
+  box-shadow: 0 0 0 3px rgba(18, 128, 90, 0.1);
+}
+
+.login-card input::placeholder {
+  color: #91a0a6;
+}
+
+.login-card .password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #819199;
+  cursor: pointer;
+  padding: 7px;
+  border-radius: 7px;
+}
+
+.login-card .password-toggle:hover {
+  background: #f2f7f5;
+  color: var(--login-green-dark);
+}
+
+.login-card .options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 26px;
+  font-size: 13px;
+}
+
+.login-card .remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #4e6268;
+}
+
+.login-card .remember input {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  accent-color: var(--login-green);
+  box-shadow: none;
+}
+
+.login-card .remember label {
+  margin: 0;
+  font-weight: 450;
+  font-size: 13px;
+  color: #4e6268;
+}
+
+.login-card .forgot {
+  color: var(--login-green);
+  text-decoration: none;
+  font-weight: 600;
+  background: none;
+  border: 0;
+  padding: 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.login-card .forgot:hover {
+  text-decoration: underline;
+}
+
+.login-card .primary-btn,
+.login-card .sso-btn {
+  width: 100%;
+  height: 50px;
+  border-radius: 26px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.login-card .primary-btn {
+  border: 1px solid var(--login-green);
+  background: var(--login-green);
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(18, 128, 90, 0.18);
+}
+
+.login-card .primary-btn:hover:not(:disabled) {
+  background: var(--login-green-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 9px 22px rgba(18, 128, 90, 0.24);
+}
+
+.login-card .primary-btn:disabled {
+  opacity: 0.72;
+  cursor: wait;
+}
+
+.login-card .divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 22px 0 20px;
+  color: #5d6e74;
+  font-size: 13px;
+}
+
+.login-card .divider::before,
+.login-card .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e3e7e8;
+}
+
+.login-card .sso-btn {
+  border: 1px solid #d5dee0;
+  background: #fff;
+  color: #075f52;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+.login-card .sso-btn:hover {
+  background: #f4fbf8;
+  border-color: var(--login-green);
+}
+
+.login-card .message {
+  min-height: 20px;
+  margin: 12px 2px 0;
+  font-size: 12px;
+  color: #64757a;
+  text-align: center;
+}
+
+.login-card .message.error {
+  color: #a33b32;
+}
+.login-card .message.success {
+  color: var(--login-green-dark);
+  font-weight: 600;
+}
+
+.login-card .secure-note {
+  margin-top: 18px;
+  text-align: center;
+  color: #87969a;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.login-card .demo-note {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #6b4a00;
+  background: #fff3d6;
+  border: 1px solid #eda100;
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+
+.login-card .demo-note b {
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 900px) {
+  .login-page {
+    justify-content: center;
+    padding: 30px 20px;
+  }
+  .login-page .background {
+    object-position: 38% center;
+  }
+  .login-card {
+    width: min(470px, 94vw);
+  }
+}
+
+@media (max-width: 600px) {
+  .login-page {
+    min-height: 100svh;
+    padding: 18px 14px;
+    align-items: center;
+  }
+  .login-page .background {
+    object-position: 35% center;
+  }
+  .login-page .shade {
+    background: rgba(0, 42, 36, 0.28);
+  }
+  .login-card {
+    padding: 27px 22px 25px;
+    border-radius: 17px;
+  }
+  .login-card .card-logo {
+    width: 205px;
+    margin-bottom: 21px;
+  }
+  .login-card h1 {
+    font-size: 25px;
+  }
+  .login-card .intro {
+    font-size: 13px;
+    margin-bottom: 21px;
+  }
+  .login-card .options {
+    margin-bottom: 22px;
+  }
+}
