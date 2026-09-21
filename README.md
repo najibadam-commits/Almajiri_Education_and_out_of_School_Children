@@ -43,7 +43,15 @@ directory are all detected.
 | `SESSION_SECRET` | any random string of 16+ characters; `openssl rand -base64 32` generates one |
 | `DEMO_AUTH_USERS` | `someone@chigari.org\|a-password-you-choose\|Their Name\|Their Role` |
 
-Set both for the Production, Preview and Development environments.
+Set both for the Production, Preview and Development environments, then
+redeploy — a hosting dashboard does not apply a new variable to a build that
+has already happened.
+
+`.env.example` wraps the accounts line in quotes because that is what a `.env`
+file needs; a hosting dashboard takes the value literally and does not. Pasting
+the quoted line into one is easy to do and used to fail with nothing more than
+"Those credentials were not recognised", so a wrapping pair of quotes is now
+stripped either way.
 
 **Choose a different password from the one in `.env.example`.** That file is
 public in this repository, so anything in it is public too. Add one account per

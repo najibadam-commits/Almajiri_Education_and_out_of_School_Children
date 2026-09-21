@@ -39,8 +39,28 @@ const DEVELOPMENT_FALLBACK: DemoAccount = {
 
 let warnedAboutFallback = false;
 
+/**
+ * Drops one matching pair of wrapping quotes.
+ *
+ * `.env` files quote a value that contains spaces, but a hosting dashboard
+ * takes the value literally, so the same line pasted into one from the other
+ * arrives with the quotes still attached. Left alone that turns the first
+ * username into `"someone@example.org` and the last field into `Role"`, and
+ * sign-in then fails with nothing to suggest why. Tolerating it costs a line;
+ * a password may legitimately begin and end with a quote, so only the whole
+ * value and the individual fields are unwrapped, never anything in between.
+ */
+function unquote(value: string): string {
+  const trimmed = value.trim();
+  const first = trimmed[0];
+  if ((first === '"' || first === "'") && trimmed.length > 1 && trimmed.endsWith(first)) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
 function parseAccounts(): DemoAccount[] {
-  const raw = process.env.DEMO_AUTH_USERS?.trim();
+  const raw = unquote(process.env.DEMO_AUTH_USERS ?? '');
 
   if (!raw) {
     if (process.env.NODE_ENV === 'production') {
@@ -64,7 +84,7 @@ function parseAccounts(): DemoAccount[] {
     .map((entry) => entry.trim())
     .filter(Boolean)
     .map((entry) => {
-      const [username, password, name, role] = entry.split('|').map((part) => part?.trim() ?? '');
+      const [username, password, name, role] = entry.split('|').map((part) => unquote(part ?? ''));
       return {
         username,
         password,
