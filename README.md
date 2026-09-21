@@ -196,7 +196,7 @@ bookmarked and shared, and browser back and forward work.
 Fonts, so the dashboard renders with its intended metrics even offline. Leaflet
 and Chart.js are bundled rather than loaded from a CDN, for the same reason.
 
-### Three deliberate differences from the prototype
+### Four deliberate differences from the prototype
 
 1. **The account menu is new.** The prototype had no signed-in user and so
    nowhere to log out from. The menu sits in the header and is built from the
@@ -209,6 +209,15 @@ and Chart.js are bundled rather than loaded from a CDN, for the same reason.
 3. **The Infrastructure and Health chart tooltips now show their value.** The
    prototype's shared tooltip read the category axis on those horizontal bar
    charts, so every bar reported `0%` regardless of its value.
+4. **The login artwork no longer has a login card painted into it.** The
+   supplied image is a full page mock-up, card included, and the prototype laid
+   it out full bleed with a real card on top. The painted card is exactly 470px
+   wide, the same as the real card's CSS width, so the two coincide only at a
+   1536x1024 viewport; at any other size the image scales to cover while the
+   real card stays 470px and the painted one shows out from behind it. It is
+   painted out by `scripts/clean-login-background.mjs`, which takes the original
+   artwork and writes `public/chigari-login-background.png`. Nothing else in the
+   image is touched, and the page's own markup and CSS are unchanged.
 
 Everything else is carried over: the stylesheet is the prototype's, apart from
 the dashboard's scroll lock and full-viewport height moving from `<body>` onto
