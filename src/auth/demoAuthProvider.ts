@@ -59,8 +59,21 @@ function unquote(value: string): string {
   return trimmed;
 }
 
+/**
+ * Drops a `DEMO_AUTH_USERS=` prefix.
+ *
+ * The documented line is `NAME=value`, and a hosting dashboard asks for the
+ * name and the value in separate boxes. Pasting the whole line into the value
+ * box makes the first username `DEMO_AUTH_USERS=someone@example.org`, which
+ * fails in a way that looks exactly like a wrong password.
+ */
+function stripAssignment(value: string): string {
+  const match = /^\s*DEMO_AUTH_USERS\s*=\s*(.*)$/s.exec(value);
+  return match ? match[1] : value;
+}
+
 function parseAccounts(): DemoAccount[] {
-  const raw = unquote(process.env.DEMO_AUTH_USERS ?? '');
+  const raw = unquote(stripAssignment(unquote(process.env.DEMO_AUTH_USERS ?? '')));
 
   if (!raw) {
     if (process.env.NODE_ENV === 'production') {
@@ -109,6 +122,10 @@ function constantTimeEquals(a: string, b: string): boolean {
 export const demoAuthProvider: AuthProviderAdapter = {
   name: 'Demo accounts',
   isDemo: true,
+
+  countIdentities(): number {
+    return parseAccounts().length;
+  },
 
   async verifyCredentials({ username, password }: Credentials): Promise<SignInResult> {
     const accounts = parseAccounts();

@@ -26,4 +26,11 @@ export interface AuthProviderAdapter {
   /** True when this provider must not be used to protect real data. */
   readonly isDemo: boolean;
   verifyCredentials(credentials: Credentials): Promise<SignInResult>;
+  /**
+   * How many sign-in identities this provider currently has, or null when the
+   * provider cannot know. Deliberately a count and never the identities
+   * themselves: it exists so a deployment can be told apart from its
+   * configuration without disclosing either.
+   */
+  countIdentities?(): number | null;
 }

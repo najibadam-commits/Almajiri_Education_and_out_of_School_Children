@@ -66,6 +66,23 @@ A deployed build refuses to sign anyone in if `DEMO_AUTH_USERS` is unset, and
 refuses to build at all if `SESSION_SECRET` is missing, so neither can be
 forgotten silently.
 
+If sign-in is refused and you cannot tell why, open `/api/auth/status` on the
+deployment. It reports how many accounts the build parsed, whether the session
+secret is set, and which commit is live — a count, some booleans and a short
+sha, never a username or a password:
+
+```json
+{ "provider": "Demo accounts", "demo": true, "accountsConfigured": 2,
+  "sessionSecretSet": true, "build": "27ed2ba" }
+```
+
+`accountsConfigured: 0` means the variable never reached this build. A count
+you do not recognise means it reached it as something other than what you
+pasted. The expected count with the accounts still live means the username or
+password does not match. The route is there because `Those credentials were not
+recognised` cannot distinguish those three, and on a hosted build there is
+otherwise nothing to look at but server logs.
+
 Remember what the deployed site is: a concept prototype full of invented data,
 reachable by anyone who has the link and an account. The sample-data ribbon is
 what keeps that honest, and it stays on every page.

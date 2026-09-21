@@ -22,6 +22,14 @@ export const authService = {
     return activeProvider.name;
   },
 
+  /**
+   * How many sign-in identities the active provider has. A count only — never
+   * the identities — so it is safe to report from an unauthenticated route.
+   */
+  get identityCount(): number | null {
+    return activeProvider.countIdentities?.() ?? null;
+  },
+
   signIn(credentials: Credentials): Promise<SignInResult> {
     return activeProvider.verifyCredentials(credentials);
   },
