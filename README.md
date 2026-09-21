@@ -27,6 +27,41 @@ npm run lint
 
 Sign in with the demo account, then you land on `/dashboard`.
 
+## Putting it online
+
+The app is a standard Next.js application and needs a host that runs server
+code: `/dashboard` is protected in middleware, and sign-in is a route handler.
+A static-file host such as GitHub Pages cannot serve it.
+
+On [Vercel](https://vercel.com/new): sign in with GitHub, import this
+repository, and set these two environment variables before the first deploy.
+No other configuration is needed — the framework, build command and output
+directory are all detected.
+
+| Variable | Value |
+| --- | --- |
+| `SESSION_SECRET` | any random string of 16+ characters; `openssl rand -base64 32` generates one |
+| `DEMO_AUTH_USERS` | `someone@chigari.org\|a-password-you-choose\|Their Name\|Their Role` |
+
+Set both for the Production, Preview and Development environments.
+
+**Choose a different password from the one in `.env.example`.** That file is
+public in this repository, so anything in it is public too. Add one account per
+person you are sharing the link with, separated by semicolons, so you can tell
+who is who and withdraw one later:
+
+```
+DEMO_AUTH_USERS="ceo@chigari.org|first-password|A Name|Programme Director; partner@example.org|second-password|Another Name|Partner"
+```
+
+A deployed build refuses to sign anyone in if `DEMO_AUTH_USERS` is unset, and
+refuses to build at all if `SESSION_SECRET` is missing, so neither can be
+forgotten silently.
+
+Remember what the deployed site is: a concept prototype full of invented data,
+reachable by anyone who has the link and an account. The sample-data ribbon is
+what keeps that honest, and it stays on every page.
+
 ## The journey
 
 ```
