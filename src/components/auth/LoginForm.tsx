@@ -82,10 +82,13 @@ export function LoginForm({ next, isDemo }: LoginFormProps) {
     <section className="login-card" aria-labelledby="login-title">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        className="card-logo"
-        src="/chigari-wordmark.svg"
-        alt="Chigari Almajiri Education Platform"
+        className="card-mark"
+        src="/chigari-logo.png"
+        width={164}
+        height={226}
+        alt="Chigari Foundation"
       />
+      <hr className="card-rule" />
 
       <h1 id="login-title">Welcome Back</h1>
       <p className="intro">
@@ -234,14 +237,19 @@ export function LoginForm({ next, isDemo }: LoginFormProps) {
         </div>
       </form>
 
-      <div className="secure-note">
-        Prototype interface · Authentication can be connected to your production identity service.
-      </div>
-
-      {isDemo && (
+      {/*
+        One notice rather than two. The prototype carried a grey line and an
+        amber one saying much the same thing; this states plainly which of the
+        two it is, which is what the brief asks for.
+      */}
+      {isDemo ? (
         <p className="demo-note">
           <b>DEMO SIGN-IN.</b> Accounts are configured for this prototype only and are not a
-          production identity service.
+          production identity service. Authentication can be connected to yours.
+        </p>
+      ) : (
+        <p className="secure-note">
+          Authentication is handled by the configured identity service.
         </p>
       )}
     </section>

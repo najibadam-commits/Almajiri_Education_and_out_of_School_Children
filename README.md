@@ -209,19 +209,44 @@ and Chart.js are bundled rather than loaded from a CDN, for the same reason.
 3. **The Infrastructure and Health chart tooltips now show their value.** The
    prototype's shared tooltip read the category axis on those horizontal bar
    charts, so every bar reported `0%` regardless of its value.
-4. **The login artwork no longer has a login card painted into it.** The
-   supplied image is a full page mock-up, card included, and the prototype laid
-   it out full bleed with a real card on top. The painted card is exactly 470px
-   wide, the same as the real card's CSS width, so the two coincide only at a
-   1536x1024 viewport; at any other size the image scales to cover while the
-   real card stays 470px and the painted one shows out from behind it. It is
-   painted out by `scripts/clean-login-background.mjs`, which takes the original
-   artwork and writes `public/chigari-login-background.png`. Nothing else in the
-   image is touched, and the page's own markup and CSS are unchanged.
+4. **The login page is markup, not a picture of a page.** The artwork supplied
+   with the prototype is a flattened page mock-up: the photograph with a
+   wordmark, a top navigation, a headline, a strapline, a footer strip, an
+   emblem and a login card all painted into it. The prototype laid that image
+   out full bleed and drew a real card on top. Because the rest was pixels it
+   could not be re-worded, it did not re-flow, and it was cropped at any window
+   shape other than the artwork's own — and the painted card, exactly 470px
+   wide like the real one, showed out from behind it at every size but
+   1536x1024. All of it is markup now and the image underneath is only the
+   photograph. See [The login artwork](#the-login-artwork).
 
 Everything else is carried over: the stylesheet is the prototype's, apart from
 the dashboard's scroll lock and full-viewport height moving from `<body>` onto
 `.app` so the login page can share the same document.
+
+### The login artwork
+
+Three build steps turn the supplied files into the assets the page uses. They
+are one-offs — the outputs are committed — but they are kept so the edits are
+reproducible and auditable rather than a binary that mysteriously differs from
+what Najib supplied. Sources live in `assets/`; the artwork itself is the file
+from the prototype folder.
+
+| Script | In | Out |
+| --- | --- | --- |
+| `build-login-photo.mjs` | the artwork | `public/chigari-login-photo.png` |
+| `build-commission-logo.mjs` | `assets/national-commission-logo-source.jpg` | `public/national-commission-logo.png` |
+| `build-foundation-logo.mjs` | `assets/chigari-foundation-logo-source.png` | `public/chigari-logo.png` |
+
+`build-login-photo.mjs` is the interesting one. Painted lettering is thin,
+bright and sits on a darker photograph, so it is found by colour rather than by
+blanking rectangles, and the surrounding photograph is diffused into the gaps it
+leaves — which keeps the veranda, the courtyard and the children intact. The
+footer strip is the exception: its lettering, icons and hairline rules are dark
+in absolute terms and only stand out against what surrounds them, so there it
+looks for local contrast instead. The login card is too large to diffuse into,
+so its area is interpolated down each column from the photograph above and below
+it and quietly vignetted; the sign-in card covers the middle of it.
 
 ## Not built, on purpose
 

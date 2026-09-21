@@ -1,11 +1,17 @@
 /*
  * CHIGARI login page.
  *
- * Carried over from the prototype's index.html. Every rule is scoped under
- * .login-page so that the login screen and the dashboard can share one <body>
- * without either one's styles reaching the other. The colour values are the
- * prototype's own and are intentionally fixed rather than themed: the login
- * screen is light in both themes, exactly as it is today.
+ * The card's own styling is the prototype's, carried over unchanged. What is
+ * new is the page around it: the prototype's artwork was a flattened mock-up
+ * with the wordmark, headline, navigation and footer strip painted into it,
+ * which meant none of it could be re-worded and all of it was cropped at any
+ * window shape other than the artwork's own. Those elements are markup now and
+ * the image behind them is only the photograph.
+ *
+ * Every rule is scoped under .login-page so the login screen and the dashboard
+ * can share one <body> without either one's styles reaching the other. The
+ * card's colours are the prototype's and are intentionally fixed rather than
+ * themed: the login card is light in both themes, exactly as it is today.
  */
 
 .login-page {
@@ -15,14 +21,14 @@
   --login-muted: #607278;
   --login-line: #d9e1e3;
 
-  min-height: 100vh;
+  /* Sampled from the artwork so the markup matches the photograph's palette. */
+  --hero-green: #4ecb8a;
+  --pillar-green: #16b98a;
+  --field: #032b25;
+
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 4vh 5.5vw;
-  overflow: hidden;
-  background: #063c34;
+  min-height: 100vh;
+  background: var(--field);
   color: var(--login-text);
   font-family:
     var(--font-inter),
@@ -35,64 +41,263 @@
     sans-serif;
 }
 
-.login-page .background {
-  position: absolute;
+/*
+ * Fixed rather than absolute so the photograph keeps its framing when the page
+ * has to scroll, instead of being stretched down the whole scroll height.
+ */
+.login-page .login-photo,
+.login-page .login-scrim {
+  position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+.login-page .login-photo {
   object-fit: cover;
-  object-position: center;
+  /* Holds the children and the mallam in frame, and takes the picture in a
+   * little so the courtyard reads as a place rather than as wallpaper. The
+   * veranda is in shade in the original, so the photograph is lifted here
+   * rather than by thinning the wash, which the headline needs. */
+  object-position: 36% 56%;
+  transform: scale(1.08);
+  filter: brightness(1.18) saturate(1.06);
   z-index: 0;
 }
 
-/* Slightly strengthens the photograph behind the interactive card. */
-.login-page .shade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, rgba(0, 35, 32, 0.08), rgba(0, 25, 23, 0.08));
+/*
+ * Two passes: across, to hold the headline on the left and settle the picture
+ * behind the card on the right; and down, to seat the masthead and the
+ * commitments strip against something darker than mid-photograph.
+ */
+.login-page .login-scrim {
   z-index: 1;
   pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(3, 29, 25, 0.5) 0%,
+      rgba(3, 29, 25, 0) 24%,
+      rgba(3, 29, 25, 0) 64%,
+      rgba(3, 29, 25, 0.58) 100%
+    ),
+    linear-gradient(
+      100deg,
+      rgba(3, 29, 25, 0.82) 0%,
+      rgba(3, 29, 25, 0.6) 30%,
+      rgba(3, 29, 25, 0.24) 54%,
+      rgba(3, 29, 25, 0.44) 72%,
+      rgba(3, 29, 25, 0.8) 100%
+    );
 }
+
+.login-shell {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 1460px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: clamp(26px, 4vh, 52px) clamp(22px, 4.4vw, 76px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 468px;
+  grid-template-rows: auto 1fr auto;
+  column-gap: clamp(40px, 5vw, 92px);
+  row-gap: clamp(26px, 4vh, 54px);
+  align-items: start;
+}
+
+/* ------------------------------------------------------------- the masthead */
+
+.login-page .brand {
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+/*
+ * The seal is supplied as artwork on a white field, so it is shown on a white
+ * chip and clipped to its own circle. Width alone is set; height follows the
+ * square source, so the mark is never stretched.
+ */
+.login-page .brand-mark {
+  flex: none;
+  width: clamp(54px, 4.3vw, 70px);
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+.login-page .brand-name {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: #fff;
+  font-family: var(--font-poppins), Poppins, system-ui, sans-serif;
+  line-height: 1.3;
+  text-shadow: 0 1px 10px rgba(0, 20, 16, 0.45);
+}
+
+.login-page .brand-name strong {
+  font-size: clamp(13px, 1.02vw, 15.5px);
+  font-weight: 650;
+}
+
+.login-page .brand-name > span {
+  font-size: clamp(12px, 0.94vw, 14.5px);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* ----------------------------------------------------------------- the hero */
+
+.login-page .hero {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: center;
+  max-width: 680px;
+}
+
+.login-page .hero h1 {
+  margin: 0;
+  font-family: var(--font-poppins), Poppins, system-ui, sans-serif;
+  /* The narration is long, so the type is allowed to run smaller on narrow
+   * columns rather than being clipped. */
+  font-size: clamp(29px, 3.05vw, 50px);
+  font-weight: 700;
+  line-height: 1.13;
+  letter-spacing: -0.022em;
+  color: #fff;
+  text-wrap: balance;
+  text-shadow: 0 2px 20px rgba(0, 20, 16, 0.5);
+}
+
+.login-page .hero h1 em {
+  font-style: normal;
+  color: var(--hero-green);
+}
+
+.login-page .hero p {
+  margin: clamp(13px, 1.7vh, 22px) 0 0;
+  max-width: 36em;
+  font-size: clamp(14.5px, 1.1vw, 19px);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 1px 12px rgba(0, 20, 16, 0.45);
+}
+
+/* --------------------------------------------------------- the commitments */
+
+.login-page .pillars {
+  grid-column: 1;
+  grid-row: 3;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  justify-content: start;
+  align-items: center;
+}
+
+.login-page .pillars li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  padding-right: clamp(14px, 1.9vw, 30px);
+}
+
+.login-page .pillars li + li {
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  padding-left: clamp(14px, 1.9vw, 30px);
+}
+
+.login-page .pillars svg {
+  flex: none;
+  width: 25px;
+  height: 25px;
+  color: var(--pillar-green);
+}
+
+.login-page .pillars span {
+  display: flex;
+  flex-direction: column;
+  font-size: clamp(12.5px, 0.95vw, 14.5px);
+  line-height: 1.36;
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 1px 10px rgba(0, 20, 16, 0.45);
+}
+
+.login-page .pillars b {
+  font-weight: 600;
+  color: #fff;
+}
+
+/* ----------------------------------------------------------------- the card */
 
 .login-card {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  align-self: center;
   position: relative;
-  z-index: 3;
-  width: min(470px, 92vw);
+  width: 100%;
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.985);
-  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.28);
-  padding: 34px 36px 36px;
+  /* Opaque, not the prototype's 98.5%: over a photograph that last 1.5% let
+   * the picture tint the card unevenly from top to bottom. */
+  background: #fff;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.34);
+  padding: 30px 34px 30px;
 }
 
-.login-card .card-logo {
+/*
+ * The Chigari Foundation mark, at its own aspect ratio. Width is the only
+ * dimension set; a rule under it separates the identity from the form without
+ * adding another block of type.
+ */
+.login-card .card-mark {
   display: block;
-  width: 245px;
+  width: 112px;
   height: auto;
-  margin: 0 auto 24px;
+  margin: 0 auto 14px;
+}
+
+.login-card .card-rule {
+  height: 1px;
+  margin: 0 0 20px;
+  border: 0;
+  background: linear-gradient(90deg, transparent, #dbe4e3 22%, #dbe4e3 78%, transparent);
 }
 
 .login-card h1 {
   margin: 0;
-  font-size: 28px;
+  font-size: 27px;
   line-height: 1.15;
   letter-spacing: -0.5px;
   color: var(--login-text);
 }
 
 .login-card .intro {
-  margin: 8px 0 25px;
+  margin: 8px 0 23px;
   font-size: 14px;
   line-height: 1.55;
   color: var(--login-muted);
 }
 
 .login-card .field {
-  margin-bottom: 17px;
+  margin-bottom: 16px;
 }
 
 .login-card label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
   font-size: 14px;
   font-weight: 650;
   color: #17343b;
@@ -161,7 +366,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 4px 0 26px;
+  margin: 4px 0 22px;
   font-size: 13px;
 }
 
@@ -236,7 +441,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  margin: 22px 0 20px;
+  margin: 18px 0 16px;
   color: #5d6e74;
   font-size: 13px;
 }
@@ -265,8 +470,8 @@
 }
 
 .login-card .message {
-  min-height: 20px;
-  margin: 12px 2px 0;
+  min-height: 18px;
+  margin: 11px 2px 0;
   font-size: 12px;
   color: #64757a;
   text-align: center;
@@ -281,70 +486,174 @@
 }
 
 .login-card .secure-note {
-  margin-top: 18px;
+  margin: 14px 0 0;
   text-align: center;
   color: #87969a;
   font-size: 11px;
   line-height: 1.5;
 }
 
+/*
+ * One notice rather than two. It has to say plainly that this is demo sign-in
+ * and not a production identity service, which was previously split across a
+ * grey line and an amber one saying much the same thing.
+ */
 .login-card .demo-note {
-  margin-top: 10px;
+  margin: 14px 0 0;
   text-align: center;
   font-size: 11px;
-  line-height: 1.5;
+  line-height: 1.55;
   color: #6b4a00;
   background: #fff3d6;
   border: 1px solid #eda100;
   border-radius: 8px;
-  padding: 7px 10px;
+  padding: 8px 11px;
 }
 
 .login-card .demo-note b {
   letter-spacing: 0.04em;
 }
 
-@media (max-width: 900px) {
-  .login-page {
-    justify-content: center;
-    padding: 30px 20px;
+/* --------------------------------------------------------------- narrower */
+
+/*
+ * Below this the two columns cannot both hold their type, so the page stacks:
+ * masthead, narration, card, commitments. The card stays the primary thing on
+ * screen and the photograph moves to the middle of the frame behind it.
+ */
+@media (max-width: 1080px) {
+  .login-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    justify-items: center;
+    row-gap: clamp(22px, 3.4vh, 38px);
+    padding: clamp(24px, 3.4vh, 40px) clamp(20px, 5vw, 44px) clamp(28px, 4vh, 48px);
   }
-  .login-page .background {
-    object-position: 38% center;
+
+  .login-page .login-photo {
+    object-position: 44% 50%;
+  }
+
+  .login-page .login-scrim {
+    background:
+      linear-gradient(180deg, rgba(3, 29, 25, 0.72) 0%, rgba(3, 29, 25, 0.5) 34%, rgba(3, 29, 25, 0.78) 100%),
+      linear-gradient(90deg, rgba(3, 29, 25, 0.45), rgba(3, 29, 25, 0.45));
+  }
+
+  .login-page .brand,
+  .login-page .hero,
+  .login-page .pillars,
+  .login-card {
+    grid-column: 1;
+  }
+
+  .login-page .brand {
+    grid-row: 1;
+  }
+  .login-page .hero {
+    grid-row: 2;
+    align-self: start;
+    text-align: center;
   }
   .login-card {
-    width: min(470px, 94vw);
+    grid-row: 3;
+    align-self: start;
+    width: min(470px, 100%);
+  }
+  .login-page .pillars {
+    grid-row: 4;
+  }
+
+  .login-page .hero h1 {
+    font-size: clamp(28px, 4.4vw, 40px);
+  }
+
+  .login-page .hero p {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .login-page .pillars {
+    justify-content: center;
+    column-gap: clamp(10px, 2vw, 26px);
+  }
+}
+
+@media (max-width: 760px) {
+  .login-page .brand {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .login-page .pillars {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+    gap: 16px 14px;
+    width: min(470px, 100%);
+  }
+
+  .login-page .pillars li,
+  .login-page .pillars li + li {
+    padding: 0;
+    border-left: 0;
   }
 }
 
 @media (max-width: 600px) {
   .login-page {
     min-height: 100svh;
-    padding: 18px 14px;
-    align-items: center;
   }
-  .login-page .background {
-    object-position: 35% center;
+
+  .login-shell {
+    min-height: 100svh;
+    padding: 22px 16px 28px;
+    row-gap: 20px;
   }
-  .login-page .shade {
-    background: rgba(0, 42, 36, 0.28);
+
+  .login-page .brand-mark {
+    width: 46px;
   }
+
+  .login-page .brand-name strong {
+    font-size: 12.5px;
+  }
+
+  .login-page .brand-name > span {
+    font-size: 11.5px;
+  }
+
+  .login-page .hero h1 {
+    font-size: clamp(23px, 6.4vw, 29px);
+    line-height: 1.18;
+  }
+
+  .login-page .hero p {
+    margin-top: 10px;
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
   .login-card {
-    padding: 27px 22px 25px;
+    padding: 24px 20px 24px;
     border-radius: 17px;
   }
-  .login-card .card-logo {
-    width: 205px;
-    margin-bottom: 21px;
+
+  .login-card .card-mark {
+    width: 96px;
   }
+
   .login-card h1 {
-    font-size: 25px;
+    font-size: 24px;
   }
+
   .login-card .intro {
     font-size: 13px;
-    margin-bottom: 21px;
+    margin-bottom: 19px;
   }
-  .login-card .options {
-    margin-bottom: 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card .primary-btn:hover:not(:disabled) {
+    transform: none;
   }
 }
