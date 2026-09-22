@@ -34,6 +34,11 @@ interface StateGeometry {
  * filter change updates the layers inside it — polygons, badges, points — and
  * never rebuilds the map, so panning and zoom survive every interaction.
  */
+/** Whether the map's container is on screen and has something to measure. */
+function hasSize(element: HTMLElement | null): boolean {
+  return Boolean(element && element.clientWidth > 0 && element.clientHeight > 0);
+}
+
 interface SchoolMapProps {
   /** True while the map view is the one on screen. */
   active: boolean;
@@ -127,58 +132,87 @@ export function SchoolMap({ active, onDetailedChange }: SchoolMapProps) {
 
   /* ---------- the map instance ---------- */
 
+  /*
+   * Leaflet sizes the initial view against the container, and this container
+   * can have no size when the module arrives: it is loaded in the browser
+   * only, and someone who switches to the chart or grid before the chunk
+   * lands leaves the map mounted inside a hidden view. Fitting the bounds
+   * then divides by a zero-sized viewport, which produces a NaN centre and
+   * throws, taking the whole dashboard down with it. So the map is built the
+   * first moment its container actually has a size, which is the moment the
+   * map view is on screen.
+   */
   useEffect(() => {
-    if (!container.current || map.current) return;
+    const element = container.current;
+    if (!element || map.current) return;
 
-    const instance = L.map(container.current, {
-      zoomSnap: 0.25,
-      minZoom: 4.5,
-      maxBounds: MAX_BOUNDS,
-      attributionControl: true,
-      zoomControl: false,
+    let created: L.Map | null = null;
+
+    const create = () => {
+      const instance = L.map(element, {
+        zoomSnap: 0.25,
+        minZoom: 4.5,
+        maxBounds: MAX_BOUNDS,
+        attributionControl: true,
+        zoomControl: false,
+      });
+      instance.fitBounds(NIGERIA_BOUNDS, { padding: [10, 10] });
+      L.control.zoom({ position: 'bottomright' }).addTo(instance);
+      instance.attributionControl.setPrefix(false);
+      instance.attributionControl.addAttribution(
+        'Base map: <a href="https://www.naturalearthdata.com">Natural Earth</a> · ' +
+          'Boundaries: <a href="https://www.geoboundaries.org">geoBoundaries</a> / GRID3 (CC BY 4.0) · ' +
+          'Schools: SAMPLE DATA',
+      );
+
+      instance.createPane('base').style.zIndex = '200';
+      const baseLabels = instance.createPane('baseLabels');
+      baseLabels.style.zIndex = '420';
+      baseLabels.style.pointerEvents = 'none';
+      instance.createPane('areas').style.zIndex = '390';
+      const focusPane = instance.createPane('focus');
+      focusPane.style.zIndex = '395';
+      focusPane.style.pointerEvents = 'none';
+
+      canvasRenderer.current = L.canvas({ padding: 0.3 });
+      areaLayer.current = L.layerGroup().addTo(instance);
+      focusLayer.current = L.layerGroup().addTo(instance);
+      pointLayer.current = L.layerGroup().addTo(instance);
+      badgeLayer.current = L.layerGroup().addTo(instance);
+
+      // The profile button inside a popup is plain HTML, so it is wired up when
+      // the popup opens rather than when the marker is built.
+      instance.on('popupopen', (event: L.PopupEvent) => {
+        const element = event.popup.getElement()?.querySelector<HTMLElement>('[data-prof]');
+        if (!element) return;
+        element.onclick = () => {
+          const id = Number(element.dataset.prof);
+          void dataService.getSchoolById(id).then((school) => {
+            if (school) handlers.current.openProfile(school);
+          });
+        };
+      });
+
+      map.current = instance;
+      created = instance;
+      setMapReady(true);
+    };
+
+    if (hasSize(element)) create();
+
+    // Watches for the container gaining a size, which happens when the map
+    // view is shown. Disconnected as soon as the map exists.
+    const observer = new ResizeObserver(() => {
+      if (!map.current && hasSize(element)) {
+        create();
+        observer.disconnect();
+      }
     });
-    instance.fitBounds(NIGERIA_BOUNDS, { padding: [10, 10] });
-    L.control.zoom({ position: 'bottomright' }).addTo(instance);
-    instance.attributionControl.setPrefix(false);
-    instance.attributionControl.addAttribution(
-      'Base map: <a href="https://www.naturalearthdata.com">Natural Earth</a> · ' +
-        'Boundaries: <a href="https://www.geoboundaries.org">geoBoundaries</a> / GRID3 (CC BY 4.0) · ' +
-        'Schools: SAMPLE DATA',
-    );
-
-    instance.createPane('base').style.zIndex = '200';
-    const baseLabels = instance.createPane('baseLabels');
-    baseLabels.style.zIndex = '420';
-    baseLabels.style.pointerEvents = 'none';
-    instance.createPane('areas').style.zIndex = '390';
-    const focusPane = instance.createPane('focus');
-    focusPane.style.zIndex = '395';
-    focusPane.style.pointerEvents = 'none';
-
-    canvasRenderer.current = L.canvas({ padding: 0.3 });
-    areaLayer.current = L.layerGroup().addTo(instance);
-    focusLayer.current = L.layerGroup().addTo(instance);
-    pointLayer.current = L.layerGroup().addTo(instance);
-    badgeLayer.current = L.layerGroup().addTo(instance);
-
-    // The profile button inside a popup is plain HTML, so it is wired up when
-    // the popup opens rather than when the marker is built.
-    instance.on('popupopen', (event: L.PopupEvent) => {
-      const element = event.popup.getElement()?.querySelector<HTMLElement>('[data-prof]');
-      if (!element) return;
-      element.onclick = () => {
-        const id = Number(element.dataset.prof);
-        void dataService.getSchoolById(id).then((school) => {
-          if (school) handlers.current.openProfile(school);
-        });
-      };
-    });
-
-    map.current = instance;
-    setMapReady(true);
+    observer.observe(element);
 
     return () => {
-      instance.remove();
+      observer.disconnect();
+      created?.remove();
       map.current = null;
       setMapReady(false);
     };
@@ -538,7 +572,7 @@ export function SchoolMap({ active, onDetailedChange }: SchoolMapProps) {
 
     // The container has just been shown, so Leaflet needs to re-measure it
     // before anything reads its size.
-    map.current?.invalidateSize();
+    if (hasSize(container.current)) map.current?.invalidateSize();
 
     const fit = pendingFit.current;
     pendingFit.current = false;
@@ -576,11 +610,22 @@ export function SchoolMap({ active, onDetailedChange }: SchoolMapProps) {
     });
   }, [focusRequest, geo]);
 
-  /** Keeps Leaflet's size in step when the surrounding layout changes. */
+  /**
+   * Keeps Leaflet's size in step when the surrounding layout changes.
+   *
+   * Switching to the chart or grid view hides this container, which the
+   * observer sees as a resize to nothing. Re-measuring at that point makes
+   * Leaflet divide by a zero-sized viewport, and with `maxBounds` set the
+   * centre it computes comes back as NaN and throws. There is nothing to
+   * measure while it is hidden, so it is skipped: the effect above
+   * re-measures when the view comes back.
+   */
   useEffect(() => {
     const instance = map.current;
     if (!instance || !container.current) return;
-    const observer = new ResizeObserver(() => instance.invalidateSize());
+    const observer = new ResizeObserver(() => {
+      if (hasSize(container.current)) instance.invalidateSize();
+    });
     observer.observe(container.current);
     return () => observer.disconnect();
   }, [mapReady]);
