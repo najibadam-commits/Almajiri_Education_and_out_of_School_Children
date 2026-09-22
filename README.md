@@ -1,9 +1,10 @@
 # CHIGARI Almajiri Education Information System
 
-A web application built from the approved HTML prototype. The login page is the
-entrance, and `/dashboard` is the same dashboard the prototype already had —
-same layout, same green identity, same Map / Chart / Grid behaviour — now with
-routing, a protected session, typed data and components.
+A web application built from the approved HTML prototype. An access portal is
+the entrance — anyone may look round as a visitor, or sign in — and
+`/dashboard` is the same dashboard the prototype already had — same layout,
+same green identity, same Map / Chart / Grid behaviour — now with routing,
+access control, typed data and components.
 
 > **CONCEPT PROTOTYPE · SAMPLE DATA ONLY.** Every school, figure, rating and
 > trend in this application is randomly generated for demonstration. None of it
@@ -25,7 +26,8 @@ npm run typecheck                # tsc --noEmit
 npm run lint
 ```
 
-Sign in with the demo account, then you land on `/dashboard`.
+Choose **Continue as Visitor** to look round without an account, or sign in
+with the demo account. Either way you land on `/dashboard`.
 
 ## Putting it online
 
@@ -90,19 +92,83 @@ what keeps that honest, and it stays on every page.
 ## The journey
 
 ```
-/login  →  authenticate  →  /dashboard
+                       ┌─ Continue as Visitor ─────────────┐
+/login (access portal) ┤                                   ├→ /dashboard
+                       └─ Sign in  ·  Create account ──────┘
+                                        │
+                          /register → /verify → /account/requests
+                                                      │
+                                       /admin/requests (review)
+                                                      │
+                                        /api/downloads/<signed token>
 ```
 
 - Visiting `/dashboard` without a session redirects to `/login`, keeping the
   view you asked for in `?next=` so a shared link survives the trip.
-- Refreshing `/dashboard` with a valid session stays on the dashboard.
-- Logging out from the account menu clears the session and returns to `/login`.
+- Visitor mode is an access mode, not a shared account: no email, no password,
+  no record. It mints a session that says `VISITOR`, and the permission table
+  gives that role one thing — reading public data.
+- A registered account can ask for a dataset. Asking is not being granted:
+  an administrator reviews each request, and an approval produces a signed,
+  expiring link that only its owner can use.
+- Logging out, or leaving visitor mode, clears the session and returns to the
+  portal.
+
+## Access control
+
+Three roles, one table, in `src/access/permissions.ts`:
+
+| | Visitor | Authorized user | Administrator |
+|---|---|---|---|
+| View the dashboard | yes | yes | yes |
+| Export a chart's numbers | no | yes | yes |
+| Request a dataset | no | yes | yes |
+| Collect an approved dataset | no | yes | yes |
+| Review, approve or reject requests | no | no | yes |
+
+An account that has not confirmed its email address is held at visitor
+permissions: it can browse while it waits, and nothing more.
+
+`can()` is what the interface asks and what every route handler asks, so a
+hidden control and a refused request cannot drift apart. **Hiding a control is
+a courtesy; the enforcement is server-side** — `requirePermission()` in
+`src/auth/guards.ts` runs before anything a visitor may not do, so a
+hand-written request gets the same answer as a click on a button that was never
+drawn. The one export that is client-side only, the chart CSV, says so in a
+comment: those numbers are already on screen, and the downloads that are
+actually protected are the dataset files.
+
+Restricted dataset files are never addressable from the browser. A download is
+a signed statement that a named request, belonging to a named user, was
+approved and has not expired — and `/api/downloads/[token]` re-checks all of
+that against the store before it sends a byte. A leaked link is worth nothing
+to anyone not signed in as its owner, and an approval withdrawn after the link
+was sent stops working at once.
+
+### What this deployment does not have yet
+
+Two seams are implemented but not connected, and both say so in the interface
+rather than pretending:
+
+- **Storage** is in memory (`src/store/`). Accounts, requests and approvals do
+  not survive a restart, and a serverless host restarts often. The
+  administration page says so, and `/api/auth/status` reports it. Connecting a
+  database is a second implementation of `Store` and no change anywhere else.
+- **Mail** has no provider (`src/services/notificationService.ts`). Every
+  message is recorded in an outbox the administration page displays —
+  verification links and approval links included — so the workflow can be
+  completed end to end and nothing is silently dropped.
 
 ## Authentication
 
-`/dashboard` is protected in `src/middleware.ts`, which verifies a signed,
-HttpOnly session cookie. It is checked on the server before the page renders,
-not hidden in the browser.
+`/dashboard`, `/account` and `/admin` are protected in `src/middleware.ts`,
+which verifies a signed, HttpOnly session cookie. It is checked on the server
+before the page renders, not hidden in the browser, and each page checks again
+for itself: a route protected in only one place is protected by whichever of
+them nobody has changed yet.
+
+Passwords for accounts people register are stored as a PBKDF2-SHA256 hash with
+a per-account salt. The password itself is never stored, logged or returned.
 
 **The current provider is demo auth and is not production auth.** It lives in
 `src/auth/demoAuthProvider.ts` and is clearly marked. It checks a username and
@@ -110,17 +176,22 @@ password against a list configured in the environment — nothing is hard-coded
 in source, and no password reaches the browser.
 
 ```
-DEMO_AUTH_USERS="user@example.org|the-password|Display Name|Role; ..."
+DEMO_AUTH_USERS="user@example.org|the-password|Display Name|Job title|ADMINISTRATOR; ..."
 SESSION_SECRET=...        # required in production
 ```
+
+The fifth field is optional and is `AUTHORIZED_USER` unless it says
+`ADMINISTRATOR`. A deployment with no administrator has nobody who can review a
+dataset request, which `/api/auth/status` reports rather than leaving you to
+discover it.
 
 Without `DEMO_AUTH_USERS`, development falls back to `demo@chigari.org` /
 `chigari-demo` and logs a warning; a production build refuses to sign anyone in
 rather than accepting a published default.
 
 To connect a real identity provider, implement `AuthProviderAdapter`
-(`src/auth/types.ts`) and point `activeProvider` in `src/auth/authService.ts`
-at it. The middleware, the login page and the dashboard do not change.
+(`src/auth/types.ts`) and add it to the list in `src/auth/authService.ts`. The
+middleware, the portal and the dashboard do not change.
 
 ## Where things are
 
@@ -128,13 +199,28 @@ at it. The middleware, the login page and the dashboard do not change.
 src/
 ├── app/
 │   ├── layout.tsx            root layout, theme bootstrap, fonts
-│   ├── login/page.tsx        the login page
+│   ├── login/page.tsx        the access portal
+│   ├── login/sign-in/        the sign-in form
+│   ├── register/, verify/    registration and email confirmation
 │   ├── dashboard/page.tsx    the protected dashboard
-│   ├── api/auth/…            login, logout, session routes
-│   └── globals.css           the prototype's stylesheet, carried over
-├── auth/                     session signing, demo provider, the auth seam
+│   ├── account/requests/     My Data Requests
+│   ├── admin/requests/       the review queue and the notification outbox
+│   ├── api/auth/…            login, logout, session, status routes
+│   ├── api/access/visitor    enters visitor mode
+│   ├── api/account/…         register, verify
+│   ├── api/data-requests/…   submit, list, review
+│   ├── api/downloads/[token] serves an approved dataset
+│   ├── globals.css           the prototype's stylesheet, carried over
+│   └── workspace.css         the account and administration pages
+├── access/permissions.ts     roles, permissions, can()
+├── auth/                     sessions, guards, password hashing, the auth seam
+├── store/                    the storage seam and its in-memory implementation
 ├── components/
-│   ├── auth/LoginForm.tsx
+│   ├── auth/                 LoginForm, RegisterForm, VerifyPanel
+│   ├── portal/               PortalFrame, AccessCards
+│   ├── account/MyRequests    the request form and the record
+│   ├── admin/ReviewQueue     the administrator's queue and outbox
+│   ├── workspace/            the header those two pages share
 │   └── dashboard/
 │       ├── DashboardShell, DashboardHeader, FilterSidebar, ViewSwitcher, SearchBox
 │       ├── map/              SchoolMap, MapLegend, MapBreadcrumb, MapLayersControl, OverviewPanel
@@ -144,9 +230,19 @@ src/
 │       └── common/           Kpi, EmptyState, Toast, Stars, ConceptRibbon, Credits, SampleDataBadge
 ├── data/                     types.ts, indicators.ts (labels, bit order, constants)
 ├── lib/                      filters, aggregations, charts, map, csv, formatting
-├── services/dataService.ts   the data seam
+├── server/datasetFiles.ts    builds a dataset file, server-side only
+├── services/                 dataService, notificationService
 ├── state/                    DashboardProvider, dashboardReducer
 └── middleware.ts             route protection
+```
+
+`qa/access-flow.mjs` walks the whole access path against a production build —
+visitor, register, verify, request, review, download — and asserts both what
+the interface shows and what the API allows:
+
+```bash
+npm run build && npm run start &
+QA_ADMIN_USER=… QA_ADMIN_PASSWORD=… BASE=http://127.0.0.1:3000 node qa/access-flow.mjs
 ```
 
 ## Data

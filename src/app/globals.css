@@ -1686,3 +1686,73 @@ footer.credits a {
 .cards .grid-empty {
   grid-column: 1/-1;
 }
+
+/* ==========================================================================
+ * Access mode.
+ *
+ * Added for the visitor / authorized-user / administrator workflow. These are
+ * new controls rather than changes to the prototype's: the dashboard's own
+ * rules above are untouched.
+ * ====================================================================== */
+
+/* Says what this session is, in the dashboard header and on the account and
+ * administration pages. */
+.access-badge {
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.access-badge.visitor {
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+/* Below the header's own breakpoint the badge would push the search box out
+ * of the row, and the account menu says the same thing one click away. */
+@media (max-width: 860px) {
+  .top .access-badge {
+    display: none;
+  }
+}
+
+/* A line of explanation inside the account menu, above the actions. */
+.user-pop .pop-note {
+  margin: 0 0 8px;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* The account menu's links are styled as its buttons already are. */
+.user-pop a.btn {
+  display: block;
+  margin-bottom: 6px;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* A chart export a visitor cannot take. It stays pressable: pressing it is
+ * what explains why, which a disabled control cannot do. */
+.card .tools button.locked {
+  color: var(--text-muted);
+}
+
+.dlg-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.dlg-actions .btn {
+  text-decoration: none;
+}

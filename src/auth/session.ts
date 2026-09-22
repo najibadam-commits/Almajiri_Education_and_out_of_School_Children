@@ -1,3 +1,4 @@
+import { isAccessRole } from '@/access/permissions';
 import type { SessionUser } from './types';
 
 /**
@@ -24,6 +25,37 @@ export const REMEMBERED_TTL_SECONDS = 30 * 24 * 60 * 60;
 export interface SessionPayload extends SessionUser {
   /** Expiry, in seconds since the epoch. */
   exp: number;
+}
+
+/** The session a visitor gets: an access mode, not an account. */
+export const VISITOR_SESSION: SessionUser = {
+  sub: 'visitor',
+  name: 'Visitor',
+  title: 'Public access',
+  role: 'VISITOR',
+  status: 'VERIFIED',
+};
+
+/** Visitor sessions are short: it is a way in, not a login. */
+export const VISITOR_TTL_SECONDS = 12 * 60 * 60;
+
+/**
+ * Brings a decoded payload up to the current shape.
+ *
+ * A cookie issued before roles existed carries a job title in `role` and no
+ * `title` or `status` at all. Rather than log those people out, the old label
+ * moves to `title` and the session is treated as an ordinary authorized user —
+ * which is what it was. An unrecognised role is never trusted upwards.
+ */
+function normalise(payload: SessionPayload): SessionPayload {
+  if (isAccessRole(payload.role) && payload.title && payload.status) return payload;
+  const legacyTitle = typeof payload.role === 'string' ? payload.role : '';
+  return {
+    ...payload,
+    title: payload.title || legacyTitle || 'User',
+    role: isAccessRole(payload.role) ? payload.role : 'AUTHORIZED_USER',
+    status: payload.status ?? 'VERIFIED',
+  };
 }
 
 const encoder = new TextEncoder();
@@ -113,7 +145,7 @@ export async function readSessionToken(
 
     const payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(body))) as SessionPayload;
     if (typeof payload.exp !== 'number' || payload.exp * 1000 <= Date.now()) return null;
-    return payload;
+    return normalise(payload);
   } catch {
     return null;
   }

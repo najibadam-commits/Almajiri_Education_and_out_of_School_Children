@@ -1,11 +1,20 @@
-/** The identity the application carries around once a user is signed in. */
+import type { AccessRole } from '@/access/permissions';
+import type { AccountStatus } from '@/store/types';
+
+/** The identity the application carries around once a session exists. */
 export interface SessionUser {
-  /** Stable subject id. */
+  /** Stable subject id: a user id, or `visitor` for an anonymous session. */
   sub: string;
   /** Display name, shown in the header. */
   name: string;
-  /** Role label. Not yet used for authorisation. */
-  role: string;
+  /** Job title or descriptive label, shown in the account menu. */
+  title: string;
+  /** What this session is allowed to do. Enforced server-side. */
+  role: AccessRole;
+  /** Whether the account has proved its email address. */
+  status: AccountStatus;
+  /** Present for an account; absent for a visitor. */
+  email?: string;
 }
 
 export interface Credentials {
@@ -33,4 +42,6 @@ export interface AuthProviderAdapter {
    * configuration without disclosing either.
    */
   countIdentities?(): number | null;
+  /** How many of those may administer the platform. */
+  countAdministrators?(): number | null;
 }

@@ -1,3 +1,4 @@
+import { type AccessRole, isAccessRole } from '@/access/permissions';
 import type { AuthProviderAdapter, Credentials, SignInResult } from './types';
 
 /**
@@ -13,7 +14,12 @@ import type { AuthProviderAdapter, Credentials, SignInResult } from './types';
  * Accounts are read from DEMO_AUTH_USERS rather than written into source, in
  * the format:
  *
- *   DEMO_AUTH_USERS="user@example.org|the-password|Display Name|Role; ..."
+ *   DEMO_AUTH_USERS="user@example.org|the-password|Display Name|Job title|ACCESS_ROLE; ..."
+ *
+ * ACCESS_ROLE is optional and is AUTHORIZED_USER unless it says ADMINISTRATOR.
+ * A deployment with no administrator has nobody who can review a dataset
+ * request, which /api/auth/status reports so it is visible rather than
+ * discovered later.
  *
  * See .env.example. Nothing in this file is sent to the browser: it is only
  * imported by route handlers, which run on the server.
@@ -23,7 +29,10 @@ interface DemoAccount {
   username: string;
   password: string;
   name: string;
-  role: string;
+  /** Job title, shown in the account menu. */
+  title: string;
+  /** What the account may do. */
+  role: AccessRole;
 }
 
 /**
@@ -34,7 +43,8 @@ const DEVELOPMENT_FALLBACK: DemoAccount = {
   username: 'demo@chigari.org',
   password: 'chigari-demo',
   name: 'Demo Officer',
-  role: 'Field officer',
+  title: 'Field officer',
+  role: 'ADMINISTRATOR',
 };
 
 let warnedAboutFallback = false;
@@ -97,12 +107,16 @@ function parseAccounts(): DemoAccount[] {
     .map((entry) => entry.trim())
     .filter(Boolean)
     .map((entry) => {
-      const [username, password, name, role] = entry.split('|').map((part) => unquote(part ?? ''));
+      const [username, password, name, title, role] = entry
+        .split('|')
+        .map((part) => unquote(part ?? ''));
+      const declared = role.toUpperCase().replace(/[\s-]+/g, '_');
       return {
         username,
         password,
         name: name || username,
-        role: role || 'User',
+        title: title || 'User',
+        role: isAccessRole(declared) && declared !== 'VISITOR' ? declared : 'AUTHORIZED_USER',
       };
     })
     .filter((account) => account.username && account.password);
@@ -125,6 +139,10 @@ export const demoAuthProvider: AuthProviderAdapter = {
 
   countIdentities(): number {
     return parseAccounts().length;
+  },
+
+  countAdministrators(): number {
+    return parseAccounts().filter((a) => a.role === 'ADMINISTRATOR').length;
   },
 
   async verifyCredentials({ username, password }: Credentials): Promise<SignInResult> {
@@ -150,7 +168,14 @@ export const demoAuthProvider: AuthProviderAdapter = {
 
     return {
       ok: true,
-      user: { sub: account.username, name: account.name, role: account.role },
+      user: {
+        sub: account.username,
+        name: account.name,
+        title: account.title,
+        role: account.role,
+        status: 'VERIFIED',
+        email: account.username,
+      },
     };
   },
 };

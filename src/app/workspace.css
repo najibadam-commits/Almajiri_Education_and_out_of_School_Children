@@ -1,0 +1,549 @@
+/*
+ * The account and administration pages.
+ *
+ * These are new screens, not part of the approved dashboard prototype, so
+ * nothing here touches a dashboard selector. They borrow the dashboard's
+ * tokens from globals.css — the same surfaces, borders, accent and dark-mode
+ * behaviour — so the platform reads as one product, and they scroll normally
+ * rather than adopting the dashboard's fixed full-viewport shell.
+ */
+
+.workspace {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text-primary);
+}
+
+/* ------------------------------------------------------------- the header */
+
+.ws-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 11px clamp(14px, 3vw, 28px);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.ws-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+/*
+ * The Foundation mark is dark ink on transparency, so it needs the same white
+ * chip the dashboard header gives it or it disappears in dark mode.
+ */
+.ws-brand img {
+  width: 26px;
+  height: auto;
+  aspect-ratio: 164 / 226;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 6px;
+  padding: 2px 3px;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.ws-brand span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.ws-brand b {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ws-brand small {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ws-nav {
+  display: flex;
+  gap: 4px;
+  flex: 1 1 auto;
+}
+
+.ws-nav a {
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--text-secondary);
+}
+
+.ws-nav a:hover {
+  background: var(--surface-3);
+  color: var(--text-primary);
+}
+
+.ws-nav a[aria-current='page'] {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.ws-account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ws-who {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.ws-signout {
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ws-signout:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/*
+ * The access badge. It is in the dashboard header too, which is why it is
+ * declared in globals.css and only positioned here.
+ */
+.ws-account .access-badge {
+  flex: 0 0 auto;
+}
+
+/* --------------------------------------------------------------- the page */
+
+.ws-main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(22px, 4vw, 40px) clamp(14px, 3vw, 28px) 72px;
+}
+
+.ws-main.wide {
+  max-width: 1200px;
+}
+
+.ws-title {
+  margin: 0;
+  font-size: clamp(24px, 3.4vw, 32px);
+  letter-spacing: -0.6px;
+}
+
+.ws-subtitle {
+  margin: 6px 0 24px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.ws-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.ws-panel {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  padding: 22px 22px 24px;
+}
+
+.ws-panel + .ws-panel.outbox,
+.ws-panel.outbox {
+  margin-top: 26px;
+}
+
+.ws-panel h2 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  letter-spacing: -0.2px;
+}
+
+.ws-lead {
+  margin: 0 0 18px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.ws-notice {
+  margin: 0 0 18px;
+  padding: 11px 13px;
+  border: 1px solid var(--warn-border);
+  border-radius: 10px;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.ws-notice a {
+  color: inherit;
+  font-weight: 700;
+}
+
+.ws-empty {
+  margin: 0;
+  padding: 18px 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* ----------------------------------------------------------------- inputs */
+
+.ws-field {
+  margin-bottom: 15px;
+}
+
+.ws-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.ws-field label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+
+.ws-field input,
+.ws-field select,
+.ws-field textarea,
+.ws-decision textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.ws-field textarea,
+.ws-decision textarea {
+  resize: vertical;
+}
+
+.ws-field input:focus,
+.ws-field select:focus,
+.ws-field textarea:focus,
+.ws-decision textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.ws-hint {
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.optional {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* ---------------------------------------------------------------- buttons */
+
+.ws-primary,
+.ws-ghost,
+.ws-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 18px;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ws-primary {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.ws-primary:hover:not(:disabled) {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.ws-primary.download {
+  margin-top: 12px;
+}
+
+.ws-ghost {
+  border: 1px solid var(--border);
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.ws-ghost:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ws-danger {
+  border: 1px solid var(--bad);
+  background: transparent;
+  color: var(--bad);
+}
+
+.ws-danger:hover:not(:disabled) {
+  background: var(--bad);
+  color: #fff;
+}
+
+.ws-primary:disabled,
+.ws-ghost:disabled,
+.ws-danger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ws-message {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.ws-message.error {
+  background: rgba(185, 58, 57, 0.1);
+  color: var(--bad);
+}
+
+.ws-message.success {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+/* ------------------------------------------------------------- the record */
+
+.ws-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.ws-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-1);
+  padding: 15px 16px 16px;
+}
+
+.ws-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 11px;
+}
+
+.ws-item-head b {
+  font-size: 14.5px;
+}
+
+.status-pill {
+  flex: 0 0 auto;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  background: var(--surface-3);
+  color: var(--text-secondary);
+}
+
+.status-pill.approved {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.status-pill.rejected {
+  background: rgba(185, 58, 57, 0.12);
+  color: var(--bad);
+}
+
+.status-pill.under_review {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+
+.ws-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px 14px;
+  margin: 0 0 11px;
+}
+
+.ws-facts dt {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ws-facts dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+}
+
+.ws-quote {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.ws-quote b {
+  color: var(--text-primary);
+}
+
+.ws-sample {
+  margin: 18px 0 0;
+  padding: 9px 12px;
+  border: 1px solid var(--warn-border);
+  border-radius: 9px;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+  font-size: 11.5px;
+  line-height: 1.55;
+}
+
+/* --------------------------------------------------------------- review */
+
+.ws-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0 0 20px;
+}
+
+.ws-filters button {
+  padding: 8px 13px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ws-filters button span {
+  margin-left: 5px;
+  color: var(--text-muted);
+}
+
+.ws-filters button.on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.ws-filters button.on span {
+  color: inherit;
+}
+
+.ws-decision {
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid var(--border);
+}
+
+.ws-decision label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ws-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 11px;
+}
+
+.ws-body {
+  margin: 9px 0 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------------------------- narrower */
+
+@media (max-width: 900px) {
+  .ws-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 680px) {
+  .ws-top {
+    gap: 10px;
+  }
+
+  .ws-nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .ws-who {
+    display: none;
+  }
+
+  .ws-field-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,12 +1,15 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { SESSION_COOKIE, readSessionToken } from '@/auth/session';
+import { sessionUser } from '@/auth/guards';
 
+/**
+ * The caller's own session.
+ *
+ * It returns the whole of what the cookie carries — role and account status
+ * included — because that is what the interface needs to say what this session
+ * is, and it is the caller's own identity rather than anybody else's.
+ */
 export async function GET() {
-  const store = await cookies();
-  const session = await readSessionToken(store.get(SESSION_COOKIE)?.value);
-  if (!session) return NextResponse.json({ user: null }, { status: 401 });
-
-  const { sub, name, role } = session;
-  return NextResponse.json({ user: { sub, name, role } });
+  const user = await sessionUser();
+  if (!user) return NextResponse.json({ user: null }, { status: 401 });
+  return NextResponse.json({ user }, { headers: { 'cache-control': 'no-store' } });
 }

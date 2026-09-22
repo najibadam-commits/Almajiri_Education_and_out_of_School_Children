@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { SessionUser } from '@/auth/types';
+import { AccessProvider } from '@/state/AccessProvider';
 import { useDashboard } from '@/state/DashboardProvider';
 import { DashboardHeader } from './DashboardHeader';
 import { FilterSidebar } from './FilterSidebar';
@@ -30,7 +31,7 @@ export function DashboardShell({ user }: { user: SessionUser }) {
   }, [state.view]);
 
   return (
-    <>
+    <AccessProvider user={user}>
       <div className="app">
         <ConceptRibbon />
         <DashboardHeader user={user} onOpenFilters={() => setDrawerOpen(true)} />
@@ -97,6 +98,6 @@ export function DashboardShell({ user }: { user: SessionUser }) {
       <SchoolProfileModal />
       <FeedbackModal />
       <Toast />
-    </>
+    </AccessProvider>
   );
 }

@@ -1,10 +1,13 @@
 'use client';
 
 import Chart from 'chart.js/auto';
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type { ChartSpec } from '@/lib/charts';
 import { downloadCsv } from '@/lib/csv';
 import { fmt } from '@/lib/formatting';
+import { useAccess } from '@/state/AccessProvider';
+import { CloseButton, Modal } from '../modals/Modal';
 
 /**
  * One chart card: the chart itself, a Table toggle that exposes the same
@@ -12,11 +15,21 @@ import { fmt } from '@/lib/formatting';
  *
  * The Chart.js instance belongs to this card and is destroyed with it, so a
  * filter change updates the data in place rather than leaking canvases.
+ *
+ * A visitor gets the chart and the table but not the export, and is told why
+ * rather than shown a control that does nothing. This is a matter of product
+ * policy, not of secrecy: these numbers are already on screen, and the export
+ * is built in the browser from what the browser has. The downloads that are
+ * actually protected are the dataset files, which a route handler serves only
+ * against an approved request — see /api/downloads.
  */
 export function ChartCard({ spec, visible }: { spec: ChartSpec; visible: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const chart = useRef<Chart | null>(null);
   const [showTable, setShowTable] = useState(false);
+  const [askedToDownload, setAskedToDownload] = useState(false);
+  const { allows, user } = useAccess();
+  const mayExport = allows('DOWNLOAD_APPROVED_DATA');
 
   useEffect(() => {
     // Chart.js measures its canvas on creation, which reads as zero while the
@@ -47,11 +60,20 @@ export function ChartCard({ spec, visible }: { spec: ChartSpec; visible: boolean
             Table
           </button>
           <button
-            onClick={() => downloadCsv(spec.id, spec.table.headers, spec.table.rows)}
-            aria-label={`Download ${spec.title} as CSV`}
+            onClick={() =>
+              mayExport
+                ? downloadCsv(spec.id, spec.table.headers, spec.table.rows)
+                : setAskedToDownload(true)
+            }
+            aria-label={
+              mayExport
+                ? `Download ${spec.title} as CSV`
+                : `Downloading ${spec.title} needs an account`
+            }
+            className={mayExport ? undefined : 'locked'}
             disabled={!hasData}
           >
-            CSV ↓
+            CSV {mayExport ? '↓' : '🔒'}
           </button>
         </div>
       </div>
@@ -84,6 +106,54 @@ export function ChartCard({ spec, visible }: { spec: ChartSpec; visible: boolean
           </div>
         )}
       </div>
+
+      <Modal
+        open={askedToDownload}
+        onClose={() => setAskedToDownload(false)}
+        labelledBy="account-required-title"
+        small
+      >
+        <div className="dlg-head">
+          <div>
+            <h3 id="account-required-title">Account Required</h3>
+          </div>
+          <CloseButton onClose={() => setAskedToDownload(false)} />
+        </div>
+        <div className="dlg-body">
+          {user.role === 'VISITOR' ? (
+            <>
+              <p>
+                You are browsing as a visitor. Everything on this dashboard is open to you to read,
+                but exporting data needs a registered account.
+              </p>
+              <p>
+                Creating one takes a minute. Controlled datasets are then released by request, and
+                an administrator reviews each one.
+              </p>
+              <div className="dlg-actions">
+                <Link className="btn primary" href="/register">
+                  Create Account
+                </Link>
+                <Link className="btn" href="/login/sign-in">
+                  Sign In
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <p>
+                Confirm your email address to export data. The confirmation link was issued when
+                you registered.
+              </p>
+              <div className="dlg-actions">
+                <Link className="btn primary" href="/account/requests">
+                  My Data Requests
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
 
       <div className="tbl">
         <table className="data">

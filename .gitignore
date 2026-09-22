@@ -6,3 +6,6 @@ out/
 *.tsbuildinfo
 next-env.d.ts
 .DS_Store
+
+# QA screenshots are build output, not source.
+qa/shots/

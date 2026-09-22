@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authService } from '@/auth/authService';
+import { notificationService } from '@/services/notificationService';
+import { store } from '@/store';
 
 /**
  * What this deployment is running, and whether it has anything to sign in
@@ -17,6 +19,7 @@ export const dynamic = 'force-dynamic';
 
 export function GET() {
   const identities = authService.identityCount;
+  const administrators = authService.administratorCount;
 
   return NextResponse.json(
     {
@@ -26,12 +29,21 @@ export function GET() {
       accountsConfigured: identities,
       /** Set, or the build would have refused to sign anyone in. */
       sessionSecretSet: (process.env.SESSION_SECRET?.length ?? 0) >= 16,
+      /** How many of those may review dataset requests. */
+      administratorsConfigured: administrators,
+      /** Where accounts, requests and approvals are held, and whether they survive. */
+      storage: store.description,
+      storageDurable: store.durable,
+      /** Whether verification and approval messages actually leave the building. */
+      mailConfigured: notificationService.canDeliver,
       /** Which commit is live, so a redeploy can be told from a stale one. */
       build: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local',
       hint:
         identities === 0
           ? 'DEMO_AUTH_USERS is empty or missing on this deployment. Set it, then redeploy — a new variable does not reach a build that already happened.'
-          : 'Accounts are configured. If sign-in is still refused, the username or password does not match what this deployment was given.',
+          : administrators === 0
+            ? 'Accounts are configured, but none of them is an ADMINISTRATOR, so nobody can review a dataset request. Add ADMINISTRATOR as the fifth field of one account in DEMO_AUTH_USERS.'
+            : 'Accounts are configured. If sign-in is still refused, the username or password does not match what this deployment was given.',
     },
     { headers: { 'cache-control': 'no-store' } },
   );

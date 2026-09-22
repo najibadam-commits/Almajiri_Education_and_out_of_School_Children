@@ -1,7 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { roleLabel } from '@/access/permissions';
 import type { SessionUser } from '@/auth/types';
 import { useDashboard } from '@/state/DashboardProvider';
 import { SearchBox } from './SearchBox';
@@ -59,6 +61,9 @@ export function DashboardHeader({ user, onOpenFilters }: DashboardHeaderProps) {
     }
   }
 
+  const isVisitor = user.role === 'VISITOR';
+  const pending = !isVisitor && user.status !== 'VERIFIED';
+
   const initials = user.name
     .split(/\s+/)
     .filter(Boolean)
@@ -86,6 +91,15 @@ export function DashboardHeader({ user, onOpenFilters }: DashboardHeaderProps) {
       <SearchBox />
 
       <div className="top-actions">
+        {/*
+         * What this session is, said out loud. A visitor should never have to
+         * work out why a control is missing, and someone with an account
+         * should be able to see that they have one.
+         */}
+        <span className={`access-badge${isVisitor ? ' visitor' : ''}`} title="Your access level">
+          {roleLabel(user.role)}
+        </span>
+
         <button
           className="icon-btn"
           onClick={zoomToNigeria}
@@ -124,10 +138,41 @@ export function DashboardHeader({ user, onOpenFilters }: DashboardHeaderProps) {
             <div className="user-pop" role="menu">
               <div className="who">
                 <b>{user.name}</b>
-                <span>{user.role}</span>
+                <span>{user.title}</span>
               </div>
+
+              {isVisitor ? (
+                <>
+                  <p className="pop-note">
+                    You are browsing without an account. Downloads and dataset requests need one.
+                  </p>
+                  <Link className="btn primary" role="menuitem" href="/register">
+                    Create Account
+                  </Link>
+                  <Link className="btn" role="menuitem" href="/login/sign-in">
+                    Sign In
+                  </Link>
+                </>
+              ) : (
+                <>
+                  {pending && (
+                    <p className="pop-note">
+                      Confirm your email address to request datasets.
+                    </p>
+                  )}
+                  <Link className="btn" role="menuitem" href="/account/requests">
+                    My Data Requests
+                  </Link>
+                  {user.role === 'ADMINISTRATOR' && (
+                    <Link className="btn" role="menuitem" href="/admin/requests">
+                      Review Requests
+                    </Link>
+                  )}
+                </>
+              )}
+
               <button className="btn" role="menuitem" onClick={signOut} disabled={signingOut}>
-                {signingOut ? 'Signing out…' : 'Log out'}
+                {signingOut ? 'Signing out…' : isVisitor ? 'Exit Visitor Mode' : 'Log out'}
               </button>
             </div>
           )}
