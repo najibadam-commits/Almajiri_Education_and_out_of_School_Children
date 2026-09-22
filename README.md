@@ -164,6 +164,20 @@ locally and is configured for a hosted one:
 DATABASE_URL="postgresql://user:password@host/dbname?sslmode=require"
 ```
 
+Use the pooled connection string if the provider offers one — Neon's
+`-pooler` host — because a serverless function is one request at a time and a
+direct connection per invocation exhausts a database's connection limit
+quickly.
+
+The connection is encrypted and the certificate is verified. `sslmode` and
+`channel_binding` are taken out of the connection string and acted on in code,
+because node-postgres lets `sslmode` in the string override the `ssl` option
+passed beside it — a TLS setting written in code next to such a string looks
+like it applies and quietly does not. A database with a self-signed
+certificate, inside a private network, is the one case for
+`DATABASE_SSL_REJECT_UNAUTHORIZED=false`; a hosted one never needs it.
+`qa/connection-string.mjs` covers that handling.
+
 Three tables — `users`, `access_requests`, `outbox` — are created on first use
 by `src/store/postgresStore.ts`. The dataset catalogue deliberately stays in
 code (`src/store/datasets.ts`): it describes files the server knows how to

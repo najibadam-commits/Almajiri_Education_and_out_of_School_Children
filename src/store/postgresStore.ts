@@ -83,6 +83,20 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS outbox_sent_at_idx ON outbox (sent_at DESC);
 `;
 
+/**
+ * The certificate failures worth naming. A hosted database should never
+ * produce one; a self-signed certificate inside a private network will, and
+ * the answer there is DATABASE_SSL_REJECT_UNAUTHORIZED=false rather than
+ * guessing at the network.
+ */
+const TLS_CODES = new Set([
+  'SELF_SIGNED_CERT_IN_CHAIN',
+  'DEPTH_ZERO_SELF_SIGNED_CERT',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'CERT_HAS_EXPIRED',
+  'ERR_TLS_CERT_ALTNAME_INVALID',
+]);
+
 interface UserRow {
   id: string;
   full_name: string;
@@ -236,16 +250,78 @@ function assignments<T extends object>(
   return { clause: parts.join(', '), values };
 }
 
+/**
+ * Splits the libpq-only parameters out of a connection string.
+ *
+ * Two of them have to be dealt with here rather than left in the URL:
+ *
+ * `sslmode` is read by node-postgres when it parses the string, and what it
+ * produces *overrides* any `ssl` option passed alongside it. A TLS decision
+ * written in code next to a connection string that carries `sslmode` looks
+ * like it applies and quietly does not, which is the worst way for a security
+ * setting to behave. So it is taken out of the string and turned into an
+ * explicit option below.
+ *
+ * `channel_binding` is a libpq option node-postgres does not implement. It is
+ * dropped rather than left to be silently ignored, so nothing about this
+ * connection claims a protection it does not have.
+ *
+ * The string is edited rather than round-tripped through `URL`, which would
+ * re-encode the password.
+ */
+function splitConnectionString(value: string): { url: string; sslmode: string } {
+  const mark = value.indexOf('?');
+  if (mark === -1) return { url: value, sslmode: '' };
+
+  const base = value.slice(0, mark);
+  let sslmode = '';
+
+  const kept = value
+    .slice(mark + 1)
+    .split('&')
+    .filter((parameter) => {
+      const equals = parameter.indexOf('=');
+      const key = (equals === -1 ? parameter : parameter.slice(0, equals)).toLowerCase();
+      if (key === 'sslmode') {
+        sslmode = parameter.slice(equals + 1).toLowerCase();
+        return false;
+      }
+      return key !== 'channel_binding';
+    });
+
+  return { url: kept.length ? `${base}?${kept.join('&')}` : base, sslmode };
+}
+
+const LOCAL_HOST = /@(localhost|127\.0\.0\.1|\[::1\])(:\d+)?\//i;
+
+/**
+ * What TLS to use, decided in one place where it actually takes effect.
+ *
+ * Verification is on by default and deliberately so. A hosted Postgres —
+ * Neon included — presents a certificate from a public authority, so
+ * verifying it succeeds and is worth having: without it, anything that can
+ * get between this process and the database can offer its own certificate
+ * and read every password hash that goes past.
+ *
+ * `sslmode=disable`, or a connection to this machine, means no TLS, which is
+ * how the local test database runs. A database with a self-signed
+ * certificate — one inside a private network — is the case for
+ * `DATABASE_SSL_REJECT_UNAUTHORIZED=false`, which is spelled out rather than
+ * hidden inside `sslmode=require` so that turning verification off is a
+ * decision somebody made on purpose.
+ */
+function sslOption(url: string, sslmode: string): { rejectUnauthorized: boolean } | false {
+  if (sslmode === 'disable') return false;
+  if (!sslmode && LOCAL_HOST.test(url)) return false;
+  return { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' };
+}
+
 export function createPostgresStore(connectionString: string): Store {
+  const { url, sslmode } = splitConnectionString(connectionString);
+
   const pool = new Pool({
-    connectionString,
-    // Neon and every other hosted Postgres terminate TLS at their proxy with a
-    // certificate this process has no root for. The connection is still
-    // encrypted; what is skipped is verifying the certificate chain, which is
-    // what `sslmode=require` means in a connection string.
-    ssl: /\bsslmode=(disable|allow)\b/.test(connectionString)
-      ? undefined
-      : { rejectUnauthorized: false },
+    connectionString: url,
+    ssl: sslOption(url, sslmode),
     // A serverless function is one request at a time and is frozen between
     // them, so a big pool is idle connections held against the database's
     // limit for nothing.
@@ -434,7 +510,9 @@ export function createPostgresStore(connectionString: string): Store {
                 ? 'the database refused these credentials'
                 : code === '3D000'
                   ? 'the named database does not exist'
-                  : 'the database returned an error',
+                  : TLS_CODES.has(code)
+                    ? "the database's TLS certificate could not be verified"
+                    : 'the database returned an error',
         };
       }
     },
