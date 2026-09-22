@@ -24,12 +24,18 @@ export default async function AccountRequestsPage() {
   if (user.role === 'VISITOR') redirect('/login?next=/account/requests');
 
   const verified = user.status === 'VERIFIED';
-  const [datasets, requests, record] = await Promise.all([
-    store.listDatasets(),
-    store.listRequestsForUser(user.sub),
-    // Absent for a seeded administrator, whose session has no stored account.
-    store.findUserById(user.sub),
-  ]);
+  // The same care as the administration page: if the records cannot be read,
+  // say so on a page that renders rather than throwing at somebody who only
+  // wanted to see their own requests.
+  const health = await store.check();
+  const [datasets, requests, record] = health.ok
+    ? await Promise.all([
+        store.listDatasets(),
+        store.listRequestsForUser(user.sub),
+        // Absent for a seeded administrator, whose session has no stored account.
+        store.findUserById(user.sub),
+      ])
+    : [await store.listDatasets(), [], null];
 
   const names = new Map(datasets.map((dataset) => [dataset.id, dataset.name]));
   const now = Date.now();
@@ -86,12 +92,21 @@ export default async function AccountRequestsPage() {
           Signed in as {user.name}
           {user.email ? ` · ${user.email}` : ''}
         </p>
+        {!health.ok && (
+          <p className="ws-notice">
+            <b>The records cannot be reached.</b> A database is configured for this deployment, but{' '}
+            {health.detail}. Your requests cannot be listed and a new one cannot be submitted until
+            that is fixed. Nothing you have already asked for has been lost.
+          </p>
+        )}
+
         <MyRequests
           datasets={requestable}
           requests={rows}
           organization={record?.organization ?? ''}
           canRequest={can(user.role, 'REQUEST_DATA_ACCESS', { verified })}
           verificationPending={!verified}
+          unavailable={!health.ok}
         />
       </main>
     </div>

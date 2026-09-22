@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { DOWNLOAD_TTL_SECONDS, createDownloadToken } from '@/auth/downloadToken';
 import { requirePermission } from '@/auth/guards';
+import { storageUnavailable } from '@/server/storageErrors';
 import {
   approvalEmail,
   notificationService,
@@ -29,6 +30,14 @@ const DECISIONS = {
 type Decision = keyof typeof DECISIONS;
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
+  try {
+    return await review(request, context);
+  } catch (error) {
+    return storageUnavailable(error, 'reviewing a dataset request');
+  }
+}
+
+async function review(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
 
   let body: Record<string, unknown>;

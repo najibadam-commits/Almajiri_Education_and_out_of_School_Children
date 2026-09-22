@@ -28,12 +28,17 @@ export default async function AdminRequestsPage() {
     redirect('/dashboard');
   }
 
-  const [requests, users, datasets, outbox] = await Promise.all([
-    store.listAllRequests(),
-    store.listUsers(),
-    store.listDatasets(),
-    store.listMessages(),
-  ]);
+  // A database that is down must not turn the review queue into a crash page:
+  // an administrator needs to be told what is wrong, on a page that renders.
+  const health = await store.check();
+  const [requests, users, datasets, outbox] = health.ok
+    ? await Promise.all([
+        store.listAllRequests(),
+        store.listUsers(),
+        store.listDatasets(),
+        store.listMessages(),
+      ])
+    : [[], [], await store.listDatasets(), []];
 
   const rows: ReviewRow[] = requests.map((request) => {
     const account = users.find((candidate) => candidate.id === request.userId);
@@ -65,18 +70,29 @@ export default async function AdminRequestsPage() {
       <main className="ws-main wide">
         <h1 className="ws-title">Dataset access requests</h1>
         <p className="ws-subtitle">
-          {pending === 0
-            ? 'Nothing is waiting for a decision.'
-            : `${pending} request${pending === 1 ? '' : 's'} waiting for a decision.`}{' '}
-          {registeredLine(users.length)}
+          {!health.ok
+            ? 'The queue could not be read.'
+            : pending === 0
+              ? 'Nothing is waiting for a decision.'
+              : `${pending} request${pending === 1 ? '' : 's'} waiting for a decision.`}{' '}
+          {health.ok ? registeredLine(users.length) : ''}
         </p>
 
-        {!store.durable && (
+        {!health.ok ? (
           <p className="ws-notice">
-            <b>Records are held in memory on this deployment.</b> Accounts, requests and approvals
-            are lost when the server restarts, and a serverless host restarts often. Connect a
-            database before this is used for anything real.
+            <b>The records cannot be reached.</b> A database is configured for this deployment, but{' '}
+            {health.detail}. Nothing can be registered, requested or approved until that is fixed,
+            and this page is showing nothing rather than showing you an empty queue as though it
+            were the truth.
           </p>
+        ) : (
+          !store.durable && (
+            <p className="ws-notice">
+              <b>Records are held in memory on this deployment.</b> Accounts, requests and approvals
+              are lost when the server restarts, and a serverless host restarts often. Connect a
+              database before this is used for anything real.
+            </p>
+          )
         )}
 
         <ReviewQueue

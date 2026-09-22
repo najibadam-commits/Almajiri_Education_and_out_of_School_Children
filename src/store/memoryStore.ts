@@ -99,5 +99,11 @@ export function createMemoryStore(): Store {
     async listMessages() {
       return outbox.map(clone);
     },
+
+    async check() {
+      // There is nothing to reach: it is this process's own memory. It is
+      // always available and never durable, which is exactly the point.
+      return { ok: true, detail: 'in-memory' };
+    },
   };
 }

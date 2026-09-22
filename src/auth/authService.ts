@@ -45,12 +45,37 @@ export const authService = {
 
   async signIn(credentials: Credentials): Promise<SignInResult> {
     let lastError = 'Those credentials were not recognised.';
+    let allFailed = true;
+
     for (const provider of providers) {
-      const result = await provider.verifyCredentials(credentials);
+      let result: SignInResult;
+      try {
+        result = await provider.verifyCredentials(credentials);
+      } catch (error) {
+        /*
+         * A provider that cannot answer is not a provider that said no.
+         * Registered accounts are checked first and they need the database,
+         * so without this a database outage would lock out the seeded
+         * administrator too — the one person who needs to get in and look at
+         * what is wrong. The failure is logged and the next provider is
+         * tried.
+         */
+        console.error(`[auth] ${provider.name} could not answer:`, error);
+        continue;
+      }
+
+      allFailed = false;
       if (result.ok) return result;
       // A provider that knows the account and refuses it — a suspension —
       // has more to say than one that simply never heard of it.
       if (result.error !== lastError) lastError = result.error;
+    }
+
+    if (allFailed) {
+      return {
+        ok: false,
+        error: 'Sign-in is unavailable just now. Please try again in a moment.',
+      };
     }
     return { ok: false, error: lastError };
   },

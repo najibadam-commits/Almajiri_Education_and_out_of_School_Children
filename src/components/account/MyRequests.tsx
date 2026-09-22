@@ -72,6 +72,8 @@ interface MyRequestsProps {
   canRequest: boolean;
   /** Shown instead of the form when the account has not confirmed its address. */
   verificationPending: boolean;
+  /** True when the records cannot be reached, so a request cannot be taken. */
+  unavailable: boolean;
 }
 
 export function MyRequests({
@@ -80,6 +82,7 @@ export function MyRequests({
   organization,
   canRequest,
   verificationPending,
+  unavailable,
 }: MyRequestsProps) {
   const router = useRouter();
   const [values, setValues] = useState({
@@ -150,7 +153,12 @@ export function MyRequests({
           administrator will review it. Approval is not automatic.
         </p>
 
-        {verificationPending ? (
+        {unavailable ? (
+          <p className="ws-notice">
+            Requests cannot be taken while the platform cannot reach its records. Please try again
+            in a little while.
+          </p>
+        ) : verificationPending ? (
           <p className="ws-notice">
             Confirm your email address to submit a request. The confirmation link was issued when
             you registered.
@@ -271,7 +279,12 @@ export function MyRequests({
 
       <section className="ws-panel" aria-labelledby="my-requests-title">
         <h2 id="my-requests-title">My Data Requests</h2>
-        {requests.length === 0 ? (
+        {unavailable ? (
+          <p className="ws-empty">
+            Your requests cannot be listed just now. Nothing has been lost — this page will show
+            them again once the records can be read.
+          </p>
+        ) : requests.length === 0 ? (
           <p className="ws-empty">
             You have not requested a dataset yet. Anything you ask for will be listed here with its
             status.

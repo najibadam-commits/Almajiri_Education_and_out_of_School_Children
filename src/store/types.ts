@@ -91,6 +91,13 @@ export interface AccessRequest {
   expiresAt: string | null;
 }
 
+/** Whether the store can actually be reached, and why not when it cannot. */
+export interface StoreHealth {
+  ok: boolean;
+  /** A short reason, for the server log. Never a connection string. */
+  detail: string;
+}
+
 /** A message the platform would have emailed. */
 export interface OutboxMessage {
   id: string;
@@ -127,6 +134,16 @@ export interface Store {
 
   recordMessage(message: OutboxMessage): Promise<void>;
   listMessages(): Promise<OutboxMessage[]>;
+
+  /**
+   * Whether this store can be reached right now.
+   *
+   * `durable` is a claim about the implementation; this is a fact about the
+   * deployment. A database that is configured but unreachable would otherwise
+   * let the status route report that records persist while every write was
+   * failing, which is the one thing it exists not to do.
+   */
+  check(): Promise<StoreHealth>;
 
   /** What this implementation is, for the deployment status route. */
   readonly description: string;

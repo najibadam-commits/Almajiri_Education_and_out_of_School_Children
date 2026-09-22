@@ -6,6 +6,7 @@ import {
   readSessionToken,
   sessionCookieOptions,
 } from '@/auth/session';
+import { storageUnavailable } from '@/server/storageErrors';
 import { store } from '@/store';
 
 /**
@@ -22,6 +23,14 @@ import { store } from '@/store';
  * visitor permissions until the next sign-in.
  */
 export async function POST(request: Request) {
+  try {
+    return await confirm(request);
+  } catch (error) {
+    return storageUnavailable(error, 'email verification');
+  }
+}
+
+async function confirm(request: Request) {
   let token = '';
   try {
     const body = (await request.json()) as { token?: unknown };

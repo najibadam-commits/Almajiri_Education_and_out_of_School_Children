@@ -36,18 +36,24 @@ code: `/dashboard` is protected in middleware, and sign-in is a route handler.
 A static-file host such as GitHub Pages cannot serve it.
 
 On [Vercel](https://vercel.com/new): sign in with GitHub, import this
-repository, and set these two environment variables before the first deploy.
-No other configuration is needed — the framework, build command and output
+repository, and set these environment variables before the first deploy. No
+other configuration is needed — the framework, build command and output
 directory are all detected.
 
 | Variable | Value |
 | --- | --- |
 | `SESSION_SECRET` | any random string of 16+ characters; `openssl rand -base64 32` generates one |
-| `DEMO_AUTH_USERS` | `someone@chigari.org\|a-password-you-choose\|Their Name\|Their Role` |
+| `DEMO_AUTH_USERS` | `someone@chigari.org\|a-password-you-choose\|Their Name\|Their Job Title\|ADMINISTRATOR` |
+| `DATABASE_URL` | a PostgreSQL connection string. Optional, but without it accounts and dataset requests are lost on every restart |
 
-Set both for the Production, Preview and Development environments, then
+Set them for the Production, Preview and Development environments, then
 redeploy — a hosting dashboard does not apply a new variable to a build that
 has already happened.
+
+`DATABASE_URL` is a secret: it contains a password. It belongs in the hosting
+dashboard or in `.env.local`, which is gitignored. Never paste it into a
+message, a commit or an issue. If one is ever exposed, rotate it at the
+provider — on Neon that is the project's **Reset password** on the role.
 
 `.env.example` wraps the accounts line in quotes because that is what a `.env`
 file needs; a hosting dashboard takes the value literally and does not. Pasting
@@ -74,8 +80,11 @@ secret is set, and which commit is live — a count, some booleans and a short
 sha, never a username or a password:
 
 ```json
-{ "provider": "Demo accounts", "demo": true, "accountsConfigured": 2,
-  "sessionSecretSet": true, "build": "27ed2ba" }
+{ "provider": "Platform accounts + Demo accounts", "demo": true,
+  "accountsConfigured": 2, "administratorsConfigured": 1,
+  "sessionSecretSet": true, "storage": "PostgreSQL (records persist)",
+  "storageReachable": true, "storageDurable": true, "mailConfigured": false,
+  "build": "27ed2ba" }
 ```
 
 `accountsConfigured: 0` means the variable never reached this build. A count
@@ -145,15 +154,41 @@ that against the store before it sends a byte. A leaked link is worth nothing
 to anyone not signed in as its owner, and an approval withdrawn after the link
 was sent stops working at once.
 
+### The database
+
+Set `DATABASE_URL` to a PostgreSQL connection string and the platform keeps
+its records. Any Postgres will do; it has been exercised against Postgres 16
+locally and is configured for a hosted one:
+
+```
+DATABASE_URL="postgresql://user:password@host/dbname?sslmode=require"
+```
+
+Three tables — `users`, `access_requests`, `outbox` — are created on first use
+by `src/store/postgresStore.ts`. The dataset catalogue deliberately stays in
+code (`src/store/datasets.ts`): it describes files the server knows how to
+build, and a row in a database saying where a file lives is no safer than a
+constant saying the same thing, while being one more thing that can disagree
+with the code.
+
+If the database is configured but cannot be reached, the platform says so
+rather than pretending: `/api/auth/status` reports `storageReachable: false`
+with a short reason, the account and administration pages render an explicit
+notice instead of an empty list, writes answer `503` rather than a blank
+`500`, and the seeded `DEMO_AUTH_USERS` administrator can still sign in — the
+one person who needs to get in and look at what is wrong.
+
 ### What this deployment does not have yet
 
 Two seams are implemented but not connected, and both say so in the interface
 rather than pretending:
 
-- **Storage** is in memory (`src/store/`). Accounts, requests and approvals do
-  not survive a restart, and a serverless host restarts often. The
-  administration page says so, and `/api/auth/status` reports it. Connecting a
-  database is a second implementation of `Store` and no change anywhere else.
+- **Storage** is PostgreSQL when `DATABASE_URL` is set, and this process's
+  memory when it is not. The in-memory store keeps a fresh checkout working
+  with nothing to provision, but it does not survive a restart and a
+  serverless host restarts often; the administration page says so and
+  `/api/auth/status` reports it. The schema is created on first use, so there
+  is no migration step to run. See "The database" below.
 - **Mail** has no provider (`src/services/notificationService.ts`). Every
   message is recorded in an outbox the administration page displays —
   verification links and approval links included — so the workflow can be
@@ -214,7 +249,7 @@ src/
 │   └── workspace.css         the account and administration pages
 ├── access/permissions.ts     roles, permissions, can()
 ├── auth/                     sessions, guards, password hashing, the auth seam
-├── store/                    the storage seam and its in-memory implementation
+├── store/                    the storage seam: memory and PostgreSQL
 ├── components/
 │   ├── auth/                 LoginForm, RegisterForm, VerifyPanel
 │   ├── portal/               PortalFrame, AccessCards
@@ -230,7 +265,7 @@ src/
 │       └── common/           Kpi, EmptyState, Toast, Stars, ConceptRibbon, Credits, SampleDataBadge
 ├── data/                     types.ts, indicators.ts (labels, bit order, constants)
 ├── lib/                      filters, aggregations, charts, map, csv, formatting
-├── server/datasetFiles.ts    builds a dataset file, server-side only
+├── server/                   datasetFiles (builds a dataset), storageErrors
 ├── services/                 dataService, notificationService
 ├── state/                    DashboardProvider, dashboardReducer
 └── middleware.ts             route protection
@@ -244,6 +279,10 @@ the interface shows and what the API allows:
 npm run build && npm run start &
 QA_ADMIN_USER=… QA_ADMIN_PASSWORD=… BASE=http://127.0.0.1:3000 node qa/access-flow.mjs
 ```
+
+Run it once with `DATABASE_URL` set and once without, so both stores are
+covered. `qa/durability.mjs` is the other half: run it, restart the server, run
+it again, and the counts it prints must not go down.
 
 ## Data
 

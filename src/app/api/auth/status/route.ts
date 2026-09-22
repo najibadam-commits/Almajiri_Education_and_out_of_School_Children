@@ -17,9 +17,12 @@ import { store } from '@/store';
  */
 export const dynamic = 'force-dynamic';
 
-export function GET() {
+export async function GET() {
   const identities = authService.identityCount;
   const administrators = authService.administratorCount;
+  // Asked rather than assumed: a database that is configured but unreachable
+  // must not be reported as one that is keeping records.
+  const storage = await store.check();
 
   return NextResponse.json(
     {
@@ -33,13 +36,17 @@ export function GET() {
       administratorsConfigured: administrators,
       /** Where accounts, requests and approvals are held, and whether they survive. */
       storage: store.description,
-      storageDurable: store.durable,
+      storageReachable: storage.ok,
+      /** Durable only if it is also actually reachable. */
+      storageDurable: store.durable && storage.ok,
+      storageProblem: storage.ok ? null : storage.detail,
       /** Whether verification and approval messages actually leave the building. */
       mailConfigured: notificationService.canDeliver,
       /** Which commit is live, so a redeploy can be told from a stale one. */
       build: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local',
-      hint:
-        identities === 0
+      hint: !storage.ok
+        ? `DATABASE_URL is set but ${storage.detail}. Accounts, requests and approvals cannot be saved until that is fixed.`
+        : identities === 0
           ? 'DEMO_AUTH_USERS is empty or missing on this deployment. Set it, then redeploy — a new variable does not reach a build that already happened.'
           : administrators === 0
             ? 'Accounts are configured, but none of them is an ADMINISTRATOR, so nobody can review a dataset request. Add ADMINISTRATOR as the fifth field of one account in DEMO_AUTH_USERS.'

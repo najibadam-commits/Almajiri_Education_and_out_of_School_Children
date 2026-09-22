@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requirePermission } from '@/auth/guards';
+import { storageUnavailable } from '@/server/storageErrors';
 import { randomToken } from '@/auth/passwords';
 import { store } from '@/store';
 import { PURPOSES, type AccessRequest, type Purpose } from '@/store/types';
@@ -15,6 +16,14 @@ import { PURPOSES, type AccessRequest, type Purpose } from '@/store/types';
  * anything: an account is identity and accountability, not entitlement.
  */
 export async function GET(request: Request) {
+  try {
+    return await list(request);
+  } catch (error) {
+    return storageUnavailable(error, 'listing dataset requests');
+  }
+}
+
+async function list(request: Request) {
   const scope = new URL(request.url).searchParams.get('scope');
 
   if (scope === 'all') {
@@ -60,6 +69,14 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  try {
+    return await submit(request);
+  } catch (error) {
+    return storageUnavailable(error, 'submitting a dataset request');
+  }
+}
+
+async function submit(request: Request) {
   const guard = await requirePermission('REQUEST_DATA_ACCESS');
   if (!guard.ok) return guard.response;
 

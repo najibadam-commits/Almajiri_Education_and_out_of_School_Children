@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readDownloadToken } from '@/auth/downloadToken';
+import { storageUnavailable } from '@/server/storageErrors';
 import { sessionUser } from '@/auth/guards';
 import { can } from '@/access/permissions';
 import { renderDataset } from '@/server/datasetFiles';
@@ -18,6 +19,14 @@ import { store } from '@/store';
  * `no-store` because the response is specific to one person.
  */
 export async function GET(_request: Request, context: { params: Promise<{ token: string }> }) {
+  try {
+    return await serve(context);
+  } catch (error) {
+    return storageUnavailable(error, 'serving an approved dataset');
+  }
+}
+
+async function serve(context: { params: Promise<{ token: string }> }) {
   const { token } = await context.params;
   const refuse = (message: string, status: number) =>
     NextResponse.json({ error: message }, { status, headers: { 'cache-control': 'no-store' } });

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { storageUnavailable } from '@/server/storageErrors';
 import { hashPassword, randomToken } from '@/auth/passwords';
 import { notificationService, verificationEmail } from '@/services/notificationService';
 import { store } from '@/store';
@@ -24,6 +25,14 @@ const text = (body: Body, key: string) =>
   typeof body[key] === 'string' ? (body[key] as string).trim() : '';
 
 export async function POST(request: Request) {
+  try {
+    return await register(request);
+  } catch (error) {
+    return storageUnavailable(error, 'registration');
+  }
+}
+
+async function register(request: Request) {
   let body: Body;
   try {
     body = (await request.json()) as Body;
